@@ -116,11 +116,31 @@ public class SliceFeatureModel implements LongRunningMethod<IFeatureModel> {
 
 		final IFeature root = m.getStructure().getRoot().getFeature();
 
-		m.getStructure().setRoot(null);
-
 		// set new abstract root
 		// needs to be done before resetting to get a unique ID
 		final IFeature nroot = factory.createFeature(m, FeatureUtils.getFeatureName(orgFeatureModel, StringTable.DEFAULT_SLICING_ROOT_NAME));
+
+		if (root.getName().equals(MARK1)) {
+			nroot.getStructure().setAbstract(true);
+			nroot.getStructure().setAnd();
+			nroot.getStructure().addChild(root.getStructure());
+			root.getStructure().setParent(nroot.getStructure());
+		} else {
+			nroot.getStructure().setAbstract(root.getStructure().isAbstract());
+			if (root.getStructure().isAlternative()) {
+				nroot.getStructure().setAlternative();
+			} else if (root.getStructure().isAnd()) {
+				nroot.getStructure().setAnd();
+			} else if (root.getStructure().isOr()) {
+				nroot.getStructure().setOr();
+			}
+			nroot.setName(root.getName());
+			for (final IFeatureStructure child : root.getStructure().getChildren()) {
+				nroot.getStructure().addChild(child);
+			}
+		}
+
+		m.getStructure().setRoot(null);
 
 		final long nextElementId = m.getNextElementId();
 		m.reset();
@@ -129,11 +149,6 @@ public class SliceFeatureModel implements LongRunningMethod<IFeatureModel> {
 		if (m instanceof FeatureModel) {
 			((FeatureModel) m).setNextElementId(nextElementId);
 		}
-
-		nroot.getStructure().setAbstract(true);
-		nroot.getStructure().setAnd();
-		nroot.getStructure().addChild(root.getStructure());
-		root.getStructure().setParent(nroot.getStructure());
 
 		// merge tree
 		cut(nroot);
